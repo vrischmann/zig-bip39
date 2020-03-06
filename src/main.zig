@@ -87,7 +87,7 @@ pub fn mnemonic(allocator: *std.mem.Allocator, language: Language, entropy: []co
         i += 1;
     }
 
-    return result.toSlice();
+    return result.toOwnedSlice();
 }
 
 fn extractIndex(data: []const u8, word_pos: usize) usize {
