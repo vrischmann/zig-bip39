@@ -92,15 +92,16 @@ fn extractIndex(data: []const u8, word_pos: usize) usize {
         // fetch the byte needed for the current position
         const b = data[pos / 8];
 
+        // compute the mask of the bits we need
         const in_byte_pos = 7 - @mod(pos, 8);
         const full_mask = @as(i64, 1) << @truncate(u6, in_byte_pos);
         const mask = @truncate(u8, @bitCast(u64, full_mask));
 
-        // Shift the current value by one to the left since we're adding a single bit.
+        // shift the current value by one to the left since we're adding a single bit.
         value <<= 1;
 
         // Append a 1 if the bit for the current position is set, 0 otherwise.
-        value |= b & mask;
+        value |= if (b & mask == mask) @as(u8, 1) else 0;
 
         pos += 1;
     }
@@ -118,6 +119,14 @@ fn checksumMask(bits: usize) usize {
         256 => 0xFF, // 8 bits
         else => unreachable,
     };
+}
+
+test "extract index" {
+    var entropy: [16]u8 = undefined;
+    try std.fmt.hexToBytes(&entropy, "18ab19a9f54a9274f03e5209a2ac8a91");
+
+    const idx = extractIndex(&entropy, 10);
+    testing.expect(idx == 277);
 }
 
 test "check the english wordlist" {
