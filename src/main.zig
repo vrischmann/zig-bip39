@@ -66,6 +66,7 @@ pub fn mnemonic(allocator: *std.mem.Allocator, language: Language, entropy: []co
     const nb_words = (entropy_bits + checksum_length) / WORD_BITS;
 
     var result = std.ArrayList([]const u8).init(allocator);
+    defer result.deinit();
 
     var i: usize = 0;
     while (i < nb_words) {
