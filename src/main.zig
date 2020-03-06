@@ -111,7 +111,6 @@ fn extractIndex(data: []const u8, word_pos: usize) usize {
 }
 
 fn checksumMask(bits: usize) usize {
-    std.debug.warn("bits: {}\n", .{bits});
     return switch (bits) {
         128 => 0xF0, // 4 bits
         160 => 0xF8, // 5 bits
