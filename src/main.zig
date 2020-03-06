@@ -44,7 +44,16 @@ pub fn mnemonic(allocator: *std.mem.Allocator, language: Language, entropy: []co
     var checksum_buf: [256]u8 = undefined;
     std.crypto.Sha256.hash(entropy, &checksum_buf);
 
-    const checksum: u8 = @truncate(u8, checksum_buf[0] & checksumMask(entropy_bits));
+    const mask: u8 = switch (entropy_bits) {
+        128 => 0xF0, // 4 bits
+        160 => 0xF8, // 5 bits
+        192 => 0xFC, // 6 bits
+        224 => 0xFE, // 7 bits
+        256 => 0xFF, // 8 bits
+        else => unreachable,
+    };
+
+    const checksum: u8 = @truncate(u8, checksum_buf[0] & mask);
 
     // append checksum to entropy
 
@@ -108,17 +117,6 @@ fn extractIndex(data: []const u8, word_pos: usize) usize {
     }
 
     return value;
-}
-
-fn checksumMask(bits: usize) usize {
-    return switch (bits) {
-        128 => 0xF0, // 4 bits
-        160 => 0xF8, // 5 bits
-        192 => 0xFC, // 6 bits
-        224 => 0xFE, // 7 bits
-        256 => 0xFF, // 8 bits
-        else => unreachable,
-    };
 }
 
 test "extract index" {
