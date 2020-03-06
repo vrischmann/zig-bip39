@@ -49,6 +49,7 @@ pub fn mnemonic(allocator: *std.mem.Allocator, language: Language, entropy: []co
     // append checksum to entropy
 
     const new_entropy = try allocator.alloc(u8, entropy.len + 1);
+    defer allocator.free(new_entropy);
 
     std.mem.copy(u8, new_entropy, entropy);
     new_entropy[entropy.len] = checksum;
