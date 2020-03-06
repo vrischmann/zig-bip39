@@ -124,12 +124,12 @@ test "extract index" {
     try std.fmt.hexToBytes(&entropy, "18ab19a9f54a9274f03e5209a2ac8a91");
 
     const idx = extractIndex(&entropy, 10);
-    testing.expect(idx == 277);
+    testing.expectEqual(idx, 277);
 }
 
 test "check the english wordlist" {
     const wordlist = readWordList(data_english);
-    testing.expect(wordlist.len == 2048);
+    testing.expectEqual(wordlist.len, 2048);
 }
 
 test "mnemonic all zeroes" {
@@ -137,4 +137,31 @@ test "mnemonic all zeroes" {
     std.mem.set(u8, &entropy, 0);
 
     const result = try mnemonic(testing.allocator, .English, &entropy);
+    defer testing.allocator.free(result);
+}
+
+test "all test vectors" {
+    // create the test vectors
+    const data = @embedFile("vectors.json");
+
+    const testVector = struct {
+        entropy: []const u8,
+        mnemonic: []const u8,
+    };
+
+    const options = std.json.ParseOptions{ .allocator = testing.allocator };
+
+    const vectors = try std.json.parse([]testVector, &std.json.TokenStream.init(data), options);
+    defer std.json.parseFree([]testVector, vectors, options);
+
+    for (vectors) |v| {
+        const result = try mnemonic(testing.allocator, .English, v.entropy);
+        // TODO(vincent): this returns 24 words instead of 12 for the first vector
+        defer testing.allocator.free(result);
+
+        const joined = try std.mem.join(testing.allocator, " ", result);
+        defer testing.allocator.free(joined);
+
+        testing.expectEqual(v.mnemonic, joined);
+    }
 }
