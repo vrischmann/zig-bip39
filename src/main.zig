@@ -108,6 +108,7 @@ pub fn Mnemonic(comptime T: type) type {
     };
 }
 
+/// Returns the index into the word list for the word at word_pos.
 fn extractIndex(data: []const u8, word_pos: usize) usize {
     var pos: usize = 0;
     var end: usize = 0;
