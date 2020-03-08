@@ -133,7 +133,7 @@ test "check the english wordlist" {
 }
 
 test "mnemonic all zeroes" {
-    var entropy: [32]u8 = undefined;
+    var entropy: [16]u8 = undefined;
     std.mem.set(u8, &entropy, 0);
 
     const result = try mnemonic(testing.allocator, .English, &entropy);
@@ -143,6 +143,7 @@ test "mnemonic all zeroes" {
     var i: usize = 0;
     while (i < 11) {
         testing.expectEqualSlices(u8, "abandon", result[i]);
+        i += 1;
     }
     testing.expectEqualSlices(u8, "about", result[11]);
 }
