@@ -32,7 +32,7 @@ pub fn mnemonic(
 
     // Compute the entropy bits at comptime since we know the type slices we're getting.
     comptime const entropy_bits = T.len * 8;
-    comptime const mask: u8 = switch (entropy_bits) {
+    comptime const checksum_mask: u8 = switch (entropy_bits) {
         128 => 0xF0, // 4 bits
         160 => 0xF8, // 5 bits
         192 => 0xFC, // 6 bits
@@ -70,7 +70,7 @@ pub fn mnemonic(
             var checksum_buf: [256]u8 = undefined;
             std.crypto.Sha256.hash(&entropy, &checksum_buf);
 
-            const checksum: u8 = @truncate(u8, checksum_buf[0] & mask);
+            const checksum: u8 = @truncate(u8, checksum_buf[0] & checksum_mask);
 
             // append checksum to entropy
 
