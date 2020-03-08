@@ -64,7 +64,7 @@ pub fn mnemonic(
 
         pub fn deinit(self: *Self) void {}
 
-        pub fn encode(self: *Self, entropy: T) ![][]const u8 {
+        pub fn encode(self: *Self, entropy: T) ![]const u8 {
             // compute sha256 checksum
             //
             var checksum_buf: [256]u8 = undefined;
@@ -83,19 +83,23 @@ pub fn mnemonic(
             // generate the mnemonic sentence
             //
 
-            var result = std.ArrayList([]const u8).init(self.allocator);
-            defer result.deinit();
+            var buffer = try std.Buffer.init(self.allocator, "");
+            defer buffer.deinit();
 
             var i: usize = 0;
             while (i < nb_words) {
+                if (i > 0) {
+                    try buffer.append(" ");
+                }
+
                 const idx = extractIndex(new_entropy, i);
 
-                try result.append(self.words[idx]);
+                try buffer.append(self.words[idx]);
 
                 i += 1;
             }
 
-            return result.toOwnedSlice();
+            return buffer.toOwnedSlice();
         }
     };
 }
@@ -152,13 +156,7 @@ test "mnemonic all zeroes" {
     const result = try encoder.encode(entropy);
     defer testing.allocator.free(result);
 
-    testing.expectEqual(@as(usize, 12), result.len);
-    var i: usize = 0;
-    while (i < 11) {
-        testing.expectEqualSlices(u8, "abandon", result[i]);
-        i += 1;
-    }
-    testing.expectEqualSlices(u8, "about", result[11]);
+    testing.expectEqualSlices(u8, "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about", result);
 }
 
 fn testMnemonic(comptime T: type, hex_entropy: []const u8, exp: []const u8) !void {
@@ -175,10 +173,7 @@ fn testMnemonic(comptime T: type, hex_entropy: []const u8, exp: []const u8) !voi
 
     // check it
 
-    const joined = try std.mem.join(testing.allocator, " ", result);
-    defer testing.allocator.free(joined);
-
-    testing.expectEqualSlices(u8, exp, joined);
+    testing.expectEqualSlices(u8, exp, result);
 }
 
 test "all test vectors" {
