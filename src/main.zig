@@ -71,7 +71,7 @@ pub fn Mnemonic(comptime T: type) type {
         pub fn encode(self: *Self, entropy: T) ![]const u8 {
             // compute sha256 checksum
             //
-            var checksum_buf: [256]u8 = undefined;
+            var checksum_buf: [std.crypto.Sha256.digest_length]u8 = undefined;
             std.crypto.Sha256.hash(&entropy, &checksum_buf);
 
             const checksum = @truncate(u8, checksum_buf[0] & checksum_mask);
