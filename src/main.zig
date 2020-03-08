@@ -71,11 +71,11 @@ pub fn mnemonic(
 
             // append checksum to entropy
 
-            const new_entropy = try self.allocator.alloc(u8, entropy.len + 1);
+            const new_entropy = try std.mem.concat(self.allocator, u8, &[_][]const u8{
+                &entropy,
+                &[_]u8{checksum},
+            });
             defer self.allocator.free(new_entropy);
-
-            std.mem.copy(u8, new_entropy, &entropy);
-            new_entropy[entropy.len] = checksum;
 
             // generate the mnemonic sentence
             //
