@@ -9,7 +9,6 @@ Supported features
 ==================
 
 * Encoding a byte array into a mnemonic
-* Decoding a mnemonic into a byte array
 * English wordlist
 
 Missing features
