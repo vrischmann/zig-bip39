@@ -117,6 +117,31 @@ fn extractIndex(data: []const u8, word_pos: usize) usize {
     pos = word_pos * WORD_BITS;
     end = pos + WORD_BITS;
 
+    // This function works by iterating over the bits in the range applicable for the word at word_pos.
+    //
+    // For example, the second word (index 1) will need these bits:
+    //  - start = 1 * 11
+    //  - end   = start + 11
+    //
+    // For each position in this range, we fetch the corresponding bit value and write the value to the
+    // output value integer.
+    //
+    // To follow up the example above, the loop would iterate other two bytes:
+    //  data[1] and data[2]
+    //
+    // These are the iterations this loop would perform:
+    //  pos = 11, b = data[1], mask = 16  = 0b00010000
+    //  pos = 12, b = data[1], mask = 8   = 0b00001000
+    //  pos = 13, b = data[1], mask = 4   = 0b00000100
+    //  pos = 14, b = data[1], mask = 2   = 0b00000010
+    //  pos = 15, b = data[1], mask = 0   = 0b00000001
+    //  pos = 16, b = data[2], mask = 128 = 0b10000000
+    //  pos = 17, b = data[2], mask = 64  = 0b01000000
+    //  pos = 18, b = data[2], mask = 32  = 0b00100000
+    //  pos = 19, b = data[2], mask = 16  = 0b00010000
+    //  pos = 20, b = data[2], mask = 8   = 0b00001000
+    //  pos = 21, b = data[2], mask = 4   = 0b00000100
+
     while (pos < end) {
         // fetch the byte needed for the current position
         const b = data[pos / 8];
