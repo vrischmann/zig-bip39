@@ -163,13 +163,22 @@ test "all test vectors" {
     defer std.json.parseFree([]testVector, vectors, options);
 
     for (vectors) |v| {
-        const result = try mnemonic(testing.allocator, .English, v.entropy);
-        // TODO(vincent): this returns 24 words instead of 12 for the first vector
+        // decode the hex entropy
+        var entropy = try testing.allocator.alloc(u8, v.entropy.len / 2);
+        defer testing.allocator.free(entropy);
+
+        try std.fmt.hexToBytes(entropy, v.entropy);
+
+        // compute the mnemonic
+
+        const result = try mnemonic(testing.allocator, .English, entropy);
         defer testing.allocator.free(result);
+
+        // check it
 
         const joined = try std.mem.join(testing.allocator, " ", result);
         defer testing.allocator.free(joined);
 
-        testing.expectEqual(v.mnemonic, joined);
+        testing.expectEqualSlices(u8, v.mnemonic, joined);
     }
 }
