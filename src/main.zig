@@ -117,9 +117,7 @@ fn extractIndex(data: []const u8, word_pos: usize) usize {
         const b = data[pos / 8];
 
         // compute the mask of the bits we need
-        const in_byte_pos = 7 - @mod(pos, 8);
-        const full_mask = @as(i64, 1) << @truncate(u6, in_byte_pos);
-        const mask = @truncate(u8, @bitCast(u64, full_mask));
+        const mask = @as(usize, 1) << @truncate(u6, 7 - @mod(pos, 8));
 
         // shift the current value by one to the left since we're adding a single bit.
         value <<= 1;
