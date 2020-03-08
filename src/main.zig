@@ -138,6 +138,13 @@ test "mnemonic all zeroes" {
 
     const result = try mnemonic(testing.allocator, .English, &entropy);
     defer testing.allocator.free(result);
+
+    testing.expectEqual(@as(usize, 12), result.len);
+    var i: usize = 0;
+    while (i < 11) {
+        testing.expectEqualSlices(u8, "abandon", result[i]);
+    }
+    testing.expectEqualSlices(u8, "about", result[11]);
 }
 
 test "all test vectors" {
