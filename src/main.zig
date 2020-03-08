@@ -2,6 +2,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 const testing = std.testing;
 
+/// The set of languages supported.
 pub const Language = enum {
     English,
 };
@@ -26,9 +27,12 @@ const MIN_ENTROPY_SIZE = 16 * 8;
 const MAX_ENTROPY_SIZE = 32 * 8;
 const WORD_BITS = 11;
 
+/// Create a mnemonic for entropy using words from language.
+/// Returns a slice of strings containing the mnemonic words.
 pub fn mnemonic(allocator: *std.mem.Allocator, language: Language, entropy: []const u8) ![][]const u8 {
     const entropy_bits = entropy.len * 8;
 
+    // sanity checks
     assert(@mod(entropy_bits, 32) == 0);
     assert(entropy_bits >= MIN_ENTROPY_SIZE and entropy_bits <= MAX_ENTROPY_SIZE);
 
