@@ -27,64 +27,87 @@ const MIN_ENTROPY_SIZE = 16 * 8;
 const MAX_ENTROPY_SIZE = 32 * 8;
 const WORD_BITS = 11;
 
-/// Create a mnemonic for entropy using words from language.
-/// Returns a slice of strings containing the mnemonic words.
-pub fn mnemonic(allocator: *std.mem.Allocator, language: Language, entropy: []const u8) ![][]const u8 {
-    const entropy_bits = entropy.len * 8;
+pub fn mnemonic(
+    comptime T: type,
+) type {
+    comptime assert(std.meta.trait.isIndexable(T));
 
-    // sanity checks
-    assert(@mod(entropy_bits, 32) == 0);
-    assert(entropy_bits >= MIN_ENTROPY_SIZE and entropy_bits <= MAX_ENTROPY_SIZE);
+    // Compute the entropy bits at comptime since we know the type slices we're getting.
+    comptime const entropy_bits = T.len * 8;
 
-    // compute sha256 checksum
-    //
-    var checksum_buf: [256]u8 = undefined;
-    std.crypto.Sha256.hash(entropy, &checksum_buf);
-
-    const mask: u8 = switch (entropy_bits) {
-        128 => 0xF0, // 4 bits
-        160 => 0xF8, // 5 bits
-        192 => 0xFC, // 6 bits
-        224 => 0xFE, // 7 bits
-        256 => 0xFF, // 8 bits
-        else => unreachable,
-    };
-
-    const checksum: u8 = @truncate(u8, checksum_buf[0] & mask);
-
-    // append checksum to entropy
-
-    const new_entropy = try allocator.alloc(u8, entropy.len + 1);
-    defer allocator.free(new_entropy);
-
-    std.mem.copy(u8, new_entropy, entropy);
-    new_entropy[entropy.len] = checksum;
-
-    // generate the mnemonic sentence
-    //
-
-    const words = switch (language) {
-        // TODO(vincent): need to fix this so we don't recompute the word list
-        // every time, but doing it at comptime is way too long.
-        .English => readWordList(data_english),
-    };
-
-    const checksum_length = entropy_bits / 32;
-    const nb_words = (entropy_bits + checksum_length) / WORD_BITS;
-
-    var result = std.ArrayList([]const u8).init(allocator);
-    defer result.deinit();
-
-    var i: usize = 0;
-    while (i < nb_words) {
-        const idx = extractIndex(new_entropy, i);
-
-        try result.append(words[idx]);
-
-        i += 1;
+    // mnemonic only makes sense with these sizes.
+    if (entropy_bits != 128 and entropy_bits != 160 and entropy_bits != 192 and entropy_bits != 224 and entropy_bits != 256) {
+        @compileError("Expected array of u8 of either length [16, 20, 24, 28, 32], found " ++ @typeName(T));
     }
 
-    return result.toOwnedSlice();
+    return struct {
+        const Self = @This();
+
+        allocator: *std.mem.Allocator,
+
+        words: [2048][]const u8,
+
+        pub fn init(allocator: *std.mem.Allocator, language: Language) !Self {
+            return Self{
+                .allocator = allocator,
+                .words = switch (language) {
+                    .English => readWordList(data_english),
+                },
+            };
+        }
+
+        pub fn deinit(self: *Self) void {}
+
+        pub fn encode(self: *Self, entropy: T) ![][]const u8 {
+            // sanity checks
+            assert(@mod(entropy_bits, 32) == 0);
+            assert(entropy_bits >= MIN_ENTROPY_SIZE and entropy_bits <= MAX_ENTROPY_SIZE);
+
+            // compute sha256 checksum
+            //
+            var checksum_buf: [256]u8 = undefined;
+            std.crypto.Sha256.hash(&entropy, &checksum_buf);
+
+            const mask: u8 = switch (entropy_bits) {
+                128 => 0xF0, // 4 bits
+                160 => 0xF8, // 5 bits
+                192 => 0xFC, // 6 bits
+                224 => 0xFE, // 7 bits
+                256 => 0xFF, // 8 bits
+                else => unreachable,
+            };
+
+            const checksum: u8 = @truncate(u8, checksum_buf[0] & mask);
+
+            // append checksum to entropy
+
+            const new_entropy = try self.allocator.alloc(u8, entropy.len + 1);
+            defer self.allocator.free(new_entropy);
+
+            std.mem.copy(u8, new_entropy, &entropy);
+            new_entropy[entropy.len] = checksum;
+
+            // generate the mnemonic sentence
+            //
+
+            const checksum_length = entropy_bits / 32;
+            const nb_words = (entropy_bits + checksum_length) / WORD_BITS;
+
+            var result = std.ArrayList([]const u8).init(self.allocator);
+            defer result.deinit();
+
+            var i: usize = 0;
+            while (i < nb_words) {
+                const idx = extractIndex(new_entropy, i);
+
+                try result.append(self.words[idx]);
+
+                i += 1;
+            }
+
+            return result.toOwnedSlice();
+        }
+    };
 }
 
 fn extractIndex(data: []const u8, word_pos: usize) usize {
@@ -133,7 +156,10 @@ test "mnemonic all zeroes" {
     var entropy: [16]u8 = undefined;
     std.mem.set(u8, &entropy, 0);
 
-    const result = try mnemonic(testing.allocator, .English, &entropy);
+    var encoder = try mnemonic([16]u8).init(testing.allocator, .English);
+    defer encoder.deinit();
+
+    const result = try encoder.encode(entropy);
     defer testing.allocator.free(result);
 
     testing.expectEqual(@as(usize, 12), result.len);
@@ -160,22 +186,42 @@ test "all test vectors" {
     defer std.json.parseFree([]testVector, vectors, options);
 
     for (vectors) |v| {
-        // decode the hex entropy
-        var entropy = try testing.allocator.alloc(u8, v.entropy.len / 2);
-        defer testing.allocator.free(entropy);
+        if (v.entropy.len == 32) {
+            var entropy: [16]u8 = undefined;
+            try std.fmt.hexToBytes(&entropy, v.entropy);
 
-        try std.fmt.hexToBytes(entropy, v.entropy);
+            var encoder = try mnemonic([16]u8).init(testing.allocator, .English);
+            defer encoder.deinit();
 
-        // compute the mnemonic
+            // compute the mnemonic
 
-        const result = try mnemonic(testing.allocator, .English, entropy);
-        defer testing.allocator.free(result);
+            const result = try encoder.encode(entropy);
+            defer testing.allocator.free(result);
 
-        // check it
+            // check it
 
-        const joined = try std.mem.join(testing.allocator, " ", result);
-        defer testing.allocator.free(joined);
+            const joined = try std.mem.join(testing.allocator, " ", result);
+            defer testing.allocator.free(joined);
 
-        testing.expectEqualSlices(u8, v.mnemonic, joined);
+            testing.expectEqualSlices(u8, v.mnemonic, joined);
+        } else if (v.entropy.len == 64) {
+            var entropy: [32]u8 = undefined;
+            try std.fmt.hexToBytes(&entropy, v.entropy);
+
+            var encoder = try mnemonic([32]u8).init(testing.allocator, .English);
+            defer encoder.deinit();
+
+            // compute the mnemonic
+
+            const result = try encoder.encode(entropy);
+            defer testing.allocator.free(result);
+
+            // check it
+
+            const joined = try std.mem.join(testing.allocator, " ", result);
+            defer testing.allocator.free(joined);
+
+            testing.expectEqualSlices(u8, v.mnemonic, joined);
+        }
     }
 }
