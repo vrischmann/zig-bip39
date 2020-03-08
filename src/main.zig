@@ -23,8 +23,6 @@ fn readWordList(data: []const u8) [2048][]const u8 {
 
 const data_english = @embedFile("wordlist_english.txt");
 
-const MIN_ENTROPY_SIZE = 16 * 8;
-const MAX_ENTROPY_SIZE = 32 * 8;
 const WORD_BITS = 11;
 
 pub fn mnemonic(
@@ -59,10 +57,6 @@ pub fn mnemonic(
         pub fn deinit(self: *Self) void {}
 
         pub fn encode(self: *Self, entropy: T) ![][]const u8 {
-            // sanity checks
-            assert(@mod(entropy_bits, 32) == 0);
-            assert(entropy_bits >= MIN_ENTROPY_SIZE and entropy_bits <= MAX_ENTROPY_SIZE);
-
             // compute sha256 checksum
             //
             var checksum_buf: [256]u8 = undefined;
