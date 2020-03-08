@@ -38,13 +38,10 @@ pub fn mnemonic(
         192 => 0xFC, // 6 bits
         224 => 0xFE, // 7 bits
         256 => 0xFF, // 8 bits
-        else => unreachable,
+        else => {
+            @compileError("Expected array of u8 of either length [16, 20, 24, 28, 32], found " ++ @typeName(T));
+        },
     };
-
-    // mnemonic only makes sense with these sizes.
-    if (entropy_bits != 128 and entropy_bits != 160 and entropy_bits != 192 and entropy_bits != 224 and entropy_bits != 256) {
-        @compileError("Expected array of u8 of either length [16, 20, 24, 28, 32], found " ++ @typeName(T));
-    }
 
     return struct {
         const Self = @This();
