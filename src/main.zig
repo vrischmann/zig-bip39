@@ -25,9 +25,12 @@ const data_english = @embedFile("wordlist_english.txt");
 
 const WORD_BITS = 11;
 
-pub fn mnemonic(
-    comptime T: type,
-) type {
+/// A Mnemonic can encode a byte array called entropy into a "mnemonic sentence", a group of easy to remember words.
+/// See https://en.bitcoin.it/wiki/BIP_0039
+///
+/// The type T must an array of u8, of either length 16, 20, 24, 28, 32.
+/// Initialize with `init`.
+pub fn Mnemonic(comptime T: type) type {
     comptime assert(std.meta.trait.isIndexable(T));
 
     // Compute the entropy bits at comptime since we know the type slices we're getting.
@@ -64,6 +67,7 @@ pub fn mnemonic(
 
         pub fn deinit(self: *Self) void {}
 
+        /// Encodes entropy into a mnemonic sentence.
         pub fn encode(self: *Self, entropy: T) ![]const u8 {
             // compute sha256 checksum
             //
@@ -148,7 +152,7 @@ test "mnemonic all zeroes" {
     var entropy: [16]u8 = undefined;
     std.mem.set(u8, &entropy, 0);
 
-    var encoder = try mnemonic([16]u8).init(testing.allocator, .English);
+    var encoder = try Mnemonic([16]u8).init(testing.allocator, .English);
     defer encoder.deinit();
 
     const result = try encoder.encode(entropy);
@@ -161,7 +165,7 @@ fn testMnemonic(comptime T: type, hex_entropy: []const u8, exp: []const u8) !voi
     var entropy: T = undefined;
     try std.fmt.hexToBytes(&entropy, hex_entropy);
 
-    var encoder = try mnemonic(T).init(testing.allocator, .English);
+    var encoder = try Mnemonic(T).init(testing.allocator, .English);
     defer encoder.deinit();
 
     // compute the mnemonic
