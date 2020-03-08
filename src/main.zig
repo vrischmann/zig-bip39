@@ -43,6 +43,9 @@ pub fn mnemonic(
         },
     };
 
+    comptime const checksum_length = entropy_bits / 32;
+    comptime const nb_words = (entropy_bits + checksum_length) / WORD_BITS;
+
     return struct {
         const Self = @This();
 
@@ -79,9 +82,6 @@ pub fn mnemonic(
 
             // generate the mnemonic sentence
             //
-
-            const checksum_length = entropy_bits / 32;
-            const nb_words = (entropy_bits + checksum_length) / WORD_BITS;
 
             var result = std.ArrayList([]const u8).init(self.allocator);
             defer result.deinit();
