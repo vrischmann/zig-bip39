@@ -165,6 +165,26 @@ test "mnemonic all zeroes" {
     testing.expectEqualSlices(u8, "about", result[11]);
 }
 
+fn testMnemonic(comptime T: type, hex_entropy: []const u8, exp: []const u8) !void {
+    var entropy: T = undefined;
+    try std.fmt.hexToBytes(&entropy, hex_entropy);
+
+    var encoder = try mnemonic(T).init(testing.allocator, .English);
+    defer encoder.deinit();
+
+    // compute the mnemonic
+
+    const result = try encoder.encode(entropy);
+    defer testing.allocator.free(result);
+
+    // check it
+
+    const joined = try std.mem.join(testing.allocator, " ", result);
+    defer testing.allocator.free(joined);
+
+    testing.expectEqualSlices(u8, exp, joined);
+}
+
 test "all test vectors" {
     // create the test vectors
     const data = @embedFile("vectors.json");
@@ -181,41 +201,17 @@ test "all test vectors" {
 
     for (vectors) |v| {
         if (v.entropy.len == 32) {
-            var entropy: [16]u8 = undefined;
-            try std.fmt.hexToBytes(&entropy, v.entropy);
-
-            var encoder = try mnemonic([16]u8).init(testing.allocator, .English);
-            defer encoder.deinit();
-
-            // compute the mnemonic
-
-            const result = try encoder.encode(entropy);
-            defer testing.allocator.free(result);
-
-            // check it
-
-            const joined = try std.mem.join(testing.allocator, " ", result);
-            defer testing.allocator.free(joined);
-
-            testing.expectEqualSlices(u8, v.mnemonic, joined);
+            try testMnemonic([16]u8, v.entropy, v.mnemonic);
+        } else if (v.entropy.len == 40) {
+            try testMnemonic([20]u8, v.entropy, v.mnemonic);
+        } else if (v.entropy.len == 48) {
+            try testMnemonic([24]u8, v.entropy, v.mnemonic);
+        } else if (v.entropy.len == 56) {
+            try testMnemonic([28]u8, v.entropy, v.mnemonic);
         } else if (v.entropy.len == 64) {
-            var entropy: [32]u8 = undefined;
-            try std.fmt.hexToBytes(&entropy, v.entropy);
-
-            var encoder = try mnemonic([32]u8).init(testing.allocator, .English);
-            defer encoder.deinit();
-
-            // compute the mnemonic
-
-            const result = try encoder.encode(entropy);
-            defer testing.allocator.free(result);
-
-            // check it
-
-            const joined = try std.mem.join(testing.allocator, " ", result);
-            defer testing.allocator.free(joined);
-
-            testing.expectEqualSlices(u8, v.mnemonic, joined);
+            try testMnemonic([32]u8, v.entropy, v.mnemonic);
+        } else {
+            @panic("unhandled vector size");
         }
     }
 }
