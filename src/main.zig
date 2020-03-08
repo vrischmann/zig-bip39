@@ -1,4 +1,5 @@
 const std = @import("std");
+const assert = std.debug.assert;
 const testing = std.testing;
 
 pub const Language = enum {
@@ -21,23 +22,15 @@ fn readWordList(data: []const u8) [2048][]const u8 {
 
 const data_english = @embedFile("wordlist_english.txt");
 
-pub const EncodingError = error{InvalidDataSize};
-
-pub const MIN_ENTROPY_SIZE = 16 * 8;
-pub const MAX_ENTROPY_SIZE = 32 * 8;
+const MIN_ENTROPY_SIZE = 16 * 8;
+const MAX_ENTROPY_SIZE = 32 * 8;
 const WORD_BITS = 11;
 
 pub fn mnemonic(allocator: *std.mem.Allocator, language: Language, entropy: []const u8) ![][]const u8 {
     const entropy_bits = entropy.len * 8;
 
-    // some sanity checks
-    if (entropy_bits < MIN_ENTROPY_SIZE or entropy_bits > MAX_ENTROPY_SIZE) {
-        return EncodingError.InvalidDataSize;
-    }
-    // TODO(vincent): can we check this via an annotation to the slice ?
-    if (@mod(entropy_bits, 32) != 0) {
-        return EncodingError.InvalidDataSize;
-    }
+    assert(@mod(entropy_bits, 32) == 0);
+    assert(entropy_bits >= MIN_ENTROPY_SIZE and entropy_bits <= MAX_ENTROPY_SIZE);
 
     // compute sha256 checksum
     //
