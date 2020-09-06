@@ -34,7 +34,7 @@ pub fn Mnemonic(comptime T: type) type {
     comptime assert(std.meta.trait.isIndexable(T));
 
     // Compute the entropy bits at comptime since we know the type slices we're getting.
-    comptime const entropy_bits = T.len * 8;
+    comptime const entropy_bits = @typeInfo(T).Array.len * 8;
     comptime const checksum_mask: u8 = switch (entropy_bits) {
         128 => 0xF0, // 4 bits
         160 => 0xF8, // 5 bits
@@ -71,8 +71,8 @@ pub fn Mnemonic(comptime T: type) type {
         pub fn encode(self: *Self, entropy: T) ![]const u8 {
             // compute sha256 checksum
             //
-            var checksum_buf: [std.crypto.Sha256.digest_length]u8 = undefined;
-            std.crypto.Sha256.hash(&entropy, &checksum_buf);
+            var checksum_buf: [std.crypto.hash.sha2.Sha256.digest_length]u8 = undefined;
+            std.crypto.hash.sha2.Sha256.hash(&entropy, &checksum_buf, .{});
 
             const checksum = @truncate(u8, checksum_buf[0] & checksum_mask);
 
@@ -87,18 +87,18 @@ pub fn Mnemonic(comptime T: type) type {
             // generate the mnemonic sentence
             //
 
-            var buffer = try std.Buffer.init(self.allocator, "");
+            var buffer = std.ArrayList(u8).init(self.allocator);
             defer buffer.deinit();
 
             var i: usize = 0;
             while (i < nb_words) {
                 if (i > 0) {
-                    try buffer.append(" ");
+                    try buffer.appendSlice(" ");
                 }
 
                 const idx = extractIndex(new_entropy, i);
 
-                try buffer.append(self.words[idx]);
+                try buffer.appendSlice(self.words[idx]);
 
                 i += 1;
             }
