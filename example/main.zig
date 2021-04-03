@@ -12,7 +12,9 @@ pub fn main() anyerror!void {
     defer arena.deinit();
     var allocator = &arena.allocator;
 
-    var encoder = try bip39.Mnemonic([20]u8).init(allocator, .English);
+    const EncoderType = bip39.Mnemonic([20]u8);
+
+    var encoder = try EncoderType.init(allocator, .English);
     defer encoder.deinit();
 
     var i: usize = 0;
