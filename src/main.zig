@@ -162,10 +162,10 @@ fn extractIndex(data: []const u8, word_pos: usize) usize {
 }
 
 test "extract index" {
-    var entropy: [16]u8 = undefined;
-    try std.fmt.hexToBytes(&entropy, "18ab19a9f54a9274f03e5209a2ac8a91");
+    var buf: [16]u8 = undefined;
+    const entropy = try std.fmt.hexToBytes(&buf, "18ab19a9f54a9274f03e5209a2ac8a91");
 
-    const idx = extractIndex(&entropy, 10);
+    const idx = extractIndex(entropy, 10);
     testing.expectEqual(idx, 277);
 }
 
@@ -189,7 +189,7 @@ test "mnemonic all zeroes" {
 
 fn testMnemonic(comptime T: type, hex_entropy: []const u8, exp: []const u8) !void {
     var entropy: T = undefined;
-    try std.fmt.hexToBytes(&entropy, hex_entropy);
+    _ = try std.fmt.hexToBytes(&entropy, hex_entropy);
 
     var encoder = try Mnemonic(T).init(testing.allocator, .English);
     defer encoder.deinit();
