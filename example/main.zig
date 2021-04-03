@@ -8,13 +8,9 @@ pub fn main() anyerror!void {
         std.debug.panic("memory leaks\n", .{});
     };
 
-    var arena = std.heap.ArenaAllocator.init(&gpa.allocator);
-    defer arena.deinit();
-    var allocator = &arena.allocator;
-
     const EncoderType = bip39.Mnemonic([20]u8);
 
-    var encoder = try EncoderType.init(allocator, .English);
+    var encoder = try EncoderType.init(&gpa.allocator, .English);
     defer encoder.deinit();
 
     var i: usize = 0;
@@ -22,7 +18,9 @@ pub fn main() anyerror!void {
         var entropy: [20]u8 = undefined;
         try std.os.getrandom(&entropy);
 
-        const sentence = encoder.encode(entropy);
+        const sentence = try encoder.encode(entropy);
+        defer gpa.allocator.free(sentence);
+
         std.debug.print("entropy: {s}, sentence: {s}\n", .{ std.fmt.fmtSliceHexLower(&entropy), sentence });
     }
 }
