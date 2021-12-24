@@ -13,10 +13,7 @@ pub fn build(b: *Builder) void {
 
     const example = b.addExecutable("example", "example/main.zig");
     example.setBuildMode(mode);
-    example.addPackage(.{
-        .name = "bip39",
-        .path = "src/lib.zig",
-    });
+    example.addPackagePath("bip39", "src/lib.zig");
     example.install();
 
     const run_example_cmd = example.run();
