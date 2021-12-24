@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const assert = std.debug.assert;
 const testing = std.testing;
 
@@ -7,11 +8,16 @@ pub const Language = enum {
     English,
 };
 
+const line_delimiter = switch (builtin.os.tag) {
+    .windows => "\r\n",
+    else => "\n",
+};
+
 /// Creates a WordList from the input data for the language provided.
 fn readWordList(data: []const u8) [2048][]const u8 {
     var words: [2048][]const u8 = undefined;
 
-    var iter = std.mem.tokenize(u8, data, "\n");
+    var iter = std.mem.tokenize(u8, data, line_delimiter);
     var i: usize = 0;
     while (iter.next()) |line| {
         words[i] = line;
