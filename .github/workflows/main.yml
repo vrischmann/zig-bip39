@@ -4,11 +4,9 @@ on:
   push:
     paths:
     - '**.zig'
-    - '**.h'
   pull_request:
     paths:
     - '**.zig'
-    - '**.h'
   schedule:
     - cron: "0 13 * * *"
   workflow_dispatch:
