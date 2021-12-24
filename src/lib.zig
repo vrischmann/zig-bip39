@@ -11,7 +11,7 @@ pub const Language = enum {
 fn readWordList(data: []const u8) [2048][]const u8 {
     var words: [2048][]const u8 = undefined;
 
-    var iter = std.mem.tokenize(data, "\n");
+    var iter = std.mem.tokenize(u8, data, "\n");
     var i: usize = 0;
     while (iter.next()) |line| {
         words[i] = line;
@@ -34,8 +34,8 @@ pub fn Mnemonic(comptime T: type) type {
     comptime assert(std.meta.trait.isIndexable(T));
 
     // Compute the entropy bits at comptime since we know the type slices we're getting.
-    comptime const entropy_bits = @typeInfo(T).Array.len * 8;
-    comptime const checksum_mask: u8 = switch (entropy_bits) {
+    const entropy_bits = @typeInfo(T).Array.len * 8;
+    const checksum_mask: u8 = switch (entropy_bits) {
         128 => 0xF0, // 4 bits
         160 => 0xF8, // 5 bits
         192 => 0xFC, // 6 bits
@@ -46,17 +46,17 @@ pub fn Mnemonic(comptime T: type) type {
         },
     };
 
-    comptime const checksum_length = entropy_bits / 32;
-    comptime const nb_words = (entropy_bits + checksum_length) / WORD_BITS;
+    const checksum_length = entropy_bits / 32;
+    const nb_words = (entropy_bits + checksum_length) / WORD_BITS;
 
     return struct {
         const Self = @This();
 
-        allocator: *std.mem.Allocator,
+        allocator: std.mem.Allocator,
 
         words: [2048][]const u8,
 
-        pub fn init(allocator: *std.mem.Allocator, language: Language) !Self {
+        pub fn init(allocator: std.mem.Allocator, language: Language) !Self {
             return Self{
                 .allocator = allocator,
                 .words = switch (language) {
@@ -65,7 +65,9 @@ pub fn Mnemonic(comptime T: type) type {
             };
         }
 
-        pub fn deinit(self: *Self) void {}
+        pub fn deinit(self: *Self) void {
+            _ = self;
+        }
 
         /// Encodes entropy into a mnemonic sentence.
         pub fn encode(self: *Self, entropy: T) ![]const u8 {
@@ -166,12 +168,12 @@ test "extract index" {
     const entropy = try std.fmt.hexToBytes(&buf, "18ab19a9f54a9274f03e5209a2ac8a91");
 
     const idx = extractIndex(entropy, 10);
-    testing.expectEqual(idx, 277);
+    try testing.expectEqual(idx, 277);
 }
 
 test "check the english wordlist" {
     const wordlist = readWordList(data_english);
-    testing.expectEqual(wordlist.len, 2048);
+    try testing.expectEqual(wordlist.len, 2048);
 }
 
 test "mnemonic all zeroes" {
@@ -184,7 +186,7 @@ test "mnemonic all zeroes" {
     const result = try encoder.encode(entropy);
     defer testing.allocator.free(result);
 
-    testing.expectEqualSlices(u8, "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about", result);
+    try testing.expectEqualSlices(u8, "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about", result);
 }
 
 fn testMnemonic(comptime T: type, hex_entropy: []const u8, exp: []const u8) !void {
@@ -201,7 +203,7 @@ fn testMnemonic(comptime T: type, hex_entropy: []const u8, exp: []const u8) !voi
 
     // check it
 
-    testing.expectEqualSlices(u8, exp, result);
+    try testing.expectEqualStrings(exp, result);
 }
 
 test "all test vectors" {
