@@ -223,7 +223,9 @@ test "all test vectors" {
 
     const options = std.json.ParseOptions{ .allocator = testing.allocator };
 
-    const vectors = try std.json.parse([]testVector, &std.json.TokenStream.init(data), options);
+    var token_stream = std.json.TokenStream.init(data);
+
+    const vectors = try std.json.parse([]testVector, &token_stream, options);
     defer std.json.parseFree([]testVector, vectors, options);
 
     for (vectors) |v| {
