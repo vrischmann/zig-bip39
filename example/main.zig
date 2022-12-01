@@ -7,10 +7,11 @@ pub fn main() anyerror!void {
     defer if (gpa.deinit()) {
         std.debug.panic("memory leaks\n", .{});
     };
+    const allocator = gpa.allocator();
 
     const EncoderType = bip39.Mnemonic([20]u8);
 
-    var encoder = try EncoderType.init(&gpa.allocator, .English);
+    var encoder = try EncoderType.init(allocator, .English);
     defer encoder.deinit();
 
     var i: usize = 0;
@@ -19,7 +20,7 @@ pub fn main() anyerror!void {
         try std.os.getrandom(&entropy);
 
         const sentence = try encoder.encode(entropy);
-        defer gpa.allocator.free(sentence);
+        defer allocator.free(sentence);
 
         std.debug.print("entropy: {s}, sentence: {s}\n", .{ std.fmt.fmtSliceHexLower(&entropy), sentence });
     }
